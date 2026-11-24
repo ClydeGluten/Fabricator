@@ -25,4 +25,4 @@ services:
       HOME: /data
       FABRICATOR_DISABLE_SELF_UPDATE: "1"
       FABRICATOR_NO_TRAY: "1"
-
+      FABRICATOR_SESSION_COOKIE_NAME: fabricator_home

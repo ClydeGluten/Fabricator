@@ -27,8 +27,6 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ ./backend/
-COPY run.py pyproject.toml ./
 # tools/ (host installer + Windows spec-gen) is intentionally not copied.
 
 # playit.gg tunnel agent. install.sh installs these on native hosts, but it is
@@ -40,7 +38,15 @@ COPY run.py pyproject.toml ./
 #
 # A failure here fails the build ON PURPOSE: an image without playit is exactly
 # the bug being fixed, and it would be invisible until a user clicked Enable.
+# Keep the binary download layer independent of player/UI changes. Rebuilding
+# the home fork should not download the same pinned tunnel binaries every time.
+COPY backend/__init__.py ./backend/
+COPY backend/utils/ ./backend/utils/
+COPY backend/playit/__init__.py backend/playit/provision.py backend/playit/release.py ./backend/playit/
 RUN python -m backend.playit.provision --dest /usr/local/bin
+
+COPY backend/ ./backend/
+COPY run.py pyproject.toml ./
 
 COPY --from=frontend /app/frontend/dist ./frontend/dist
 
