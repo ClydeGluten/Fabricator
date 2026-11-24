@@ -154,6 +154,9 @@ _NEVER = [
     # answer no question the diagnosis use case asks.
     ("GET", "/api/servers/<server_id>/players/state"),
     ("GET", "/api/servers/<server_id>/players/online"),
+    ("GET", "/api/servers/<server_id>/players/<name>/details"),
+    ("POST", "/api/servers/<server_id>/players/<name>/actions"),
+    ("POST", "/api/servers/<server_id>/players/whitelist/batch"),
     # players surface (bans / kick / ops / whitelist / known players)
     ("POST", "/api/servers/<server_id>/players/bans"),
     ("DELETE", "/api/servers/<server_id>/players/bans"),

@@ -1,0 +1,11 @@
+[Unit]
+Description=Update the Minecraft DuckDNS IPv4 address
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/update-minecraft-ddns
+TimeoutStartSec=75
+NoNewPrivileges=yes
+UMask=0077
+Restart=on-failure
+RestartSec=60

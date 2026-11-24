@@ -1,3 +1,40 @@
+# Fabricator — home-server fork
+
+Personal fork maintained by [ClydeGluten](https://github.com/ClydeGluten), based on
+[philderks/Fabricator](https://github.com/philderks/Fabricator), AGPL-3.0.
+
+Adds a host-owned data directory, player detail cards (coordinates, inventory,
+health and controls), and a persistent whitelist editor with bulk import/export.
+
+**[Инструкция на русском: запуск, перенос и DuckDNS](docs/HOME_SERVER_RU.md)**
+
+```bash
+python3 tools/setup-home.py "$HOME/Games/Fabricator-fork-data"
+./tools/home-compose.sh up -d --build
+```
+
+The fork uses `compose.home.yml`: panel **127.0.0.1:5001**, game preview
+**127.0.0.1:25566**, a separate `fabricator-home` project and an explicit bind
+mount. Existing containers/volumes are never imported automatically. Configuration
+is in the ignored `.env.home`; the process runs with your Linux UID/GID.
+
+Architecture: Vue/Pinia frontend → authenticated Flask API → managed Minecraft
+process and read-only NBT snapshots. Live player reads use the existing console;
+a saved-data fallback is labelled with its timestamp. Inventory is read-only.
+New player endpoints retain the panel's session-only access policy.
+
+No additional paid service is needed: expected and peak subscriptions **$0/month**
+when running on an existing PC, excluding normal electricity/Internet costs.
+
+Run backend tests with `.venv/bin/python -m pytest -q`; frontend tests/build with
+`npm test` / `npm run build` in `frontend/`. `npm run test:browser` uses a disposable
+Flask fixture on port 5057. See the linked guide for setup and migration/rollback.
+
+The upstream documentation below describes the original image. For this fork,
+use the commands above and `compose.home.yml`, not the upstream image quick start.
+
+---
+
 <div align="center">
 
 <img src="frontend/public/favicon.svg" alt="Fabricator Logo" width="92" height="92" />

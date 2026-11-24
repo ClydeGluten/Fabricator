@@ -62,6 +62,9 @@ class Config:
         # Session signing key (Flask-standard name). Required when built-in
         # auth is enabled - see backend/auth. SENSITIVE: never log or repr.
         self.SECRET_KEY = os.environ.get("SECRET_KEY")
+        # Cookies are scoped by host, not port. A parallel home installation
+        # needs its own name so logging into :5001 does not replace :5000's cookie.
+        self.SESSION_COOKIE_NAME = os.environ.get("FABRICATOR_SESSION_COOKIE_NAME", "session")
         self.HOST = os.environ.get("HOST", "127.0.0.1")
         self.PORT = int(os.environ.get("PORT", 5000))
 

@@ -109,6 +109,34 @@ def offline_uuid(name: str) -> uuid.UUID:
     return uuid.UUID(bytes=bytes(digest))
 
 
+def patch_property(server_dir: Path, key: str, value: bool) -> None:
+    """Persist one boolean server property without rewriting unrelated keys."""
+    path = _resolve_within(Path(server_dir), "server.properties")
+    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    lines = [line for line in lines if line.split("=", 1)[0].strip() != key]
+    lines.append(f"{key}={str(value).lower()}")
+    fd, tmp = tempfile.mkstemp(prefix="server.properties.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            out.write("\n".join(lines) + "\n")
+        os.replace(tmp, path)
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+
+
+def boolean_property(server_dir: Path, key: str):
+    """Read the last assignment of a boolean property, or None if absent."""
+    path = _resolve_within(Path(server_dir), "server.properties")
+    if not path.exists():
+        return None
+    result = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        name, separator, value = line.strip().partition("=")
+        if separator and name.strip() == key and value.strip().lower() in ("true", "false"):
+            result = value.strip().lower() == "true"
+    return result
+
+
 def find_entry_by_name(entries: JsonList, name: str) -> Optional[dict]:
     """Case-insensitive lookup by 'name' field. Returns the dict or None."""
     target = name.lower()

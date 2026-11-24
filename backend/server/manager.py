@@ -985,6 +985,35 @@ class ServerManager:
                 return True
         return False
 
+    def query_command(self, command: str, pattern: "re.Pattern[str]", timeout: float = 3.0):
+        """Send a command and return a matching *new* console reply.
+
+        Capture the cursor before writing stdin: a fast server can reply during
+        send_command itself. Never wait while holding the stream's buffer lock.
+        Callers supply a server-prefix-anchored pattern and serialize queries
+        with the per-server operation lock. No RCON port/password is required.
+        """
+        with self._buffer_lock:
+            seen = self._stdout_total
+        process = self._process
+        result = self.send_command(command)
+        if not result.get("success"):
+            raise RuntimeError(result.get("message", "Server console is unavailable"))
+        deadline = time.monotonic() + timeout
+        while True:
+            with self._buffer_lock:
+                total = self._stdout_total
+                count = max(0, total - seen)
+                lines = self._stdout_buffer[-count:] if count else []
+            seen = total
+            for _, line in lines:
+                match = pattern.search(self._ANSI_RE.sub("", line).rstrip())
+                if match:
+                    return match
+            if self._process is not process or time.monotonic() >= deadline:
+                return None
+            time.sleep(0.05)
+
     def send_command(self, command: str) -> dict:
         """Send a console command to the running server process."""
         if not command.strip():

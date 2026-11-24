@@ -11,6 +11,23 @@ def test_cookie_flags_default(auth_client):
     assert "Secure" not in cookie  # default off — panel serves HTTP
 
 
+def test_parallel_home_panel_uses_a_separate_cookie(tmp_servers_root, monkeypatch):
+    from backend.auth import service
+    from backend.core.app import create_app
+
+    monkeypatch.delenv("FABRICATOR_DISABLE_AUTH", raising=False)
+    monkeypatch.setenv("SECRET_KEY", "test-secret-key")
+    monkeypatch.setenv("FABRICATOR_AUTH_PASSWORD_HASH", service.hash_password("pw"))
+    monkeypatch.setenv("FABRICATOR_SESSION_COOKIE_NAME", "fabricator_home")
+    app = create_app()
+    response = app.test_client().post("/api/auth/login", json={"password": "pw"})
+    assert response.status_code == 200
+    cookie = response.headers["Set-Cookie"]
+    assert cookie.startswith("fabricator_home=")
+    assert "SameSite=Lax" in cookie
+    assert "Secure" not in cookie  # default off — panel serves HTTP
+
+
 def test_cookie_secure_when_enabled(tmp_servers_root, monkeypatch):
     from backend.auth import service
 

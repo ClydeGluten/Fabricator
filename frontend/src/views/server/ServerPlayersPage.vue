@@ -2,6 +2,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import IpBansPanel from '../../components/players/IpBansPanel.vue'
 import PlayerAvatar from '../../components/players/PlayerAvatar.vue'
+import PlayerDetailModal from '../../components/players/PlayerDetailModal.vue'
+import WhitelistPanel from '../../components/players/WhitelistPanel.vue'
 import StatCard from '../../components/ui/StatCard.vue'
 import AppButton from '../../components/ui/AppButton.vue'
 import ToggleRow from '../../components/ui/ToggleRow.vue'
@@ -13,6 +15,7 @@ import { t } from '../../i18n'
 const store = usePlayersStore()
 const serverStore = useServerStore()
 const toast = useToast()
+const selectedPlayer = ref(null)
 
 onMounted(async () => {
   await store.loadAll()
@@ -27,6 +30,7 @@ watch(
   () => serverStore.currentServerId,
   (id, oldId) => {
     if (!id || id === oldId) return
+    selectedPlayer.value = null
     store.stopOnlinePolling()
     store.resetState()
     store.loadAll().then(() => {
@@ -295,23 +299,18 @@ function onToggleEnforce(value) {
       <StatCard :label="$t('players.stats.banned')" :value="store.bans.length" accent="danger" />
     </div>
 
-    <!-- Whitelist enforcement -->
+    <WhitelistPanel :key="serverStore.currentServerId" />
+
+    <!-- Kicking removed players is distinct from enabling the whitelist. -->
     <section class="whitelist-settings">
       <ToggleRow
-        v-if="store.isRunning"
-        :label="$t('players.whitelistRuntime')"
-        :model-value="store.whitelistActive"
-        @update:model-value="onToggleActive"
-      />
-      <ToggleRow
-        v-else
-        :label="$t('players.enforceWhitelist')"
+        v-if="!store.isRunning"
+        :label="$t('whitelistEditor.enforce')"
         :model-value="store.enforceWhitelist"
         @update:model-value="onToggleEnforce"
       />
       <p class="whitelist-settings__hint">
-        <template v-if="store.isRunning">{{ $t('players.whitelistRuntimeHint') }}</template>
-        <template v-else>{{ $t('players.enforceWhitelistHint') }}</template>
+        {{ $t('whitelistEditor.enforceHint') }}
       </p>
     </section>
 
@@ -356,7 +355,7 @@ function onToggleEnforce(value) {
         <PlayerAvatar :name="p.name" :uuid="p.uuid" :offline-mode="!store.onlineMode" :size="28" />
 
         <div class="player-row__main">
-          <span class="player-row__name">{{ p.name }}</span>
+          <button class="player-row__name player-row__open" type="button" :aria-label="$t('playerCard.open', { name: p.name })" @click="selectedPlayer = p">{{ p.name }}</button>
           <span class="player-row__when">{{ p.isOnline ? $t('players.online') : (relativeTime(p.lastSeen) || $t('players.neverSeen')) }}</span>
         </div>
 
@@ -413,10 +412,14 @@ function onToggleEnforce(value) {
     </ul>
 
     <IpBansPanel />
+    <PlayerDetailModal :show="!!selectedPlayer" :player="selectedPlayer" :server-id="serverStore.currentServerId" :running="store.isRunning" :online-players="store.online" @close="selectedPlayer = null" />
   </div>
 </template>
 
 <style scoped>
+.player-row__open { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font: inherit; }
+.player-row__open:hover { color: var(--primary); text-decoration: underline; }
+.player-row__open:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 3px; }
 .players-page {
   display: flex;
   flex-direction: column;
