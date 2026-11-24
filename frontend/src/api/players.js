@@ -6,6 +6,18 @@
 
 import { get, post, patch, del } from './client'
 
+export function getPlayerDetails(serverId, name, options = {}) {
+  return get(`/api/servers/${serverId}/players/${encodeURIComponent(name)}/details`, {}, options)
+}
+
+export function sendPlayerAction(serverId, name, action) {
+  return post(`/api/servers/${serverId}/players/${encodeURIComponent(name)}/actions`, action)
+}
+
+export function addWhitelistBatch(serverId, names) {
+  return post(`/api/servers/${serverId}/players/whitelist/batch`, { names })
+}
+
 export async function getPlayersState(serverId) {
   return get(`/api/servers/${serverId}/players/state`)
 }

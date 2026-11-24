@@ -15,3 +15,9 @@ java
 .fabricator
 docs
 mcp
+
+.env*
+.preview-data
+.test-data
+.artifacts
+.playwright

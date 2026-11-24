@@ -11,6 +11,7 @@ from backend.server.players import files as players_files
 from backend.server.players import lastseen as players_lastseen
 from backend.server.players import live as players_live
 from backend.server.players import service as players_service
+from backend.server.players import details as player_details
 from backend.server.players.mojang import MojangUnavailable, PlayerNotFound
 from backend.server.registry import get_server_process_registry
 from backend.utils.routes import require_server, with_server_lock
@@ -45,7 +46,7 @@ _whitelist_active_cache = players_service.WhitelistActiveCache()
 
 
 def _validate_name(raw: Optional[str]):
-    if not isinstance(raw, str) or not _NAME_RE.match(raw):
+    if not isinstance(raw, str) or not _NAME_RE.fullmatch(raw):
         return None, (
             jsonify({"error": "Invalid player name (1-16 chars, [A-Za-z0-9_])"}),
             400,
@@ -119,6 +120,31 @@ def get_online(server_id, server):
     return jsonify(players_live.list_online(_registry(), server))
 
 
+@players_bp.route("/servers/<server_id>/players/<name>/details", methods=["GET"])
+@require_server
+@with_server_lock
+def get_player_details(server_id, server, name):
+    try:
+        return jsonify(player_details.get_details(_registry(), server, name))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except OSError:
+        return jsonify({"error": "Could not read the saved player data."}), 500
+
+
+@players_bp.route("/servers/<server_id>/players/<name>/actions", methods=["POST"])
+@require_server
+@with_server_lock
+def player_action(server_id, server, name):
+    try:
+        return jsonify(player_details.perform_action(
+            _registry(), server, name, request.get_json(silent=True)))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except players_service.ServerStateError as exc:
+        return jsonify({"error": str(exc)}), 409
+
+
 # ---------- whitelist -------------------------------------------------
 
 @players_bp.route("/servers/<server_id>/players/whitelist", methods=["POST"])
@@ -146,14 +172,58 @@ def whitelist_remove(server_id, server):
 @with_server_lock
 def whitelist_active(server_id, server):
     data = request.get_json() or {}
-    active = bool(data.get("active"))
+    if not isinstance(data, dict) or not isinstance(data.get("active"), bool):
+        return jsonify({"error": "active must be true or false"}), 400
+    active = data["active"]
+    registry = _registry()
     try:
-        result = players_service.set_whitelist_active(
-            _registry(), server, _whitelist_active_cache, active
-        )
+        if registry.get_status(server_id).get("status") == "running":
+            players_service.set_whitelist_active(registry, server, _whitelist_active_cache, active)
+        # white-list gates new joins. enforce-whitelist controls kicking players
+        # after a whitelist reload; it must never be used as the enable switch.
+        players_files.patch_property(registry.resolve_install_path(server), "white-list", active)
+        storage.update_server(server_id, {"whitelist": active})
     except players_service.ServerStateError as exc:
         return jsonify({"error": str(exc)}), 409
-    return jsonify(result)
+    return jsonify({"whitelistActive": active})
+
+
+@players_bp.route("/servers/<server_id>/players/whitelist/batch", methods=["POST"])
+@require_server
+@with_server_lock
+def whitelist_batch(server_id, server):
+    data = request.get_json(silent=True)
+    names = data.get("names") if isinstance(data, dict) else None
+    if not isinstance(names, list) or not 1 <= len(names) <= 20:
+        return jsonify({"error": "Supply between 1 and 20 player names."}), 400
+    unique = {}
+    for name in names:
+        try:
+            player_details.valid_name(name)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        unique.setdefault(name.lower(), name)
+    registry = _registry()
+    install = registry.resolve_install_path(server)
+    results = []
+    # Resolve names before writing so invalid accounts are reported per entry.
+    # File + reload is also correct for offline-mode UUIDs and never depends on
+    # async vanilla 'whitelist add' having finished when the UI refreshes.
+    for name in unique.values():
+        try:
+            uid = players_service._upsert_whitelist_entry(install, server, name)
+            results.append({"name": name, "uuid": uid, "added": True})
+        except PlayerNotFound:
+            results.append({"name": name, "added": False, "error": "Minecraft account not found."})
+        except MojangUnavailable:
+            results.append({"name": name, "added": False, "error": "Minecraft account lookup unavailable; try again."})
+    warning = None
+    if any(result["added"] for result in results) and registry.get_status(server_id).get("status") == "running":
+        try:
+            players_service._send(registry, server_id, "whitelist reload")
+        except players_service.ServerStateError:
+            warning = "Names were saved, but the running server could not reload them. Restart it to apply the list."
+    return jsonify({"results": results, "warning": warning})
 
 
 # ---------- ops -------------------------------------------------------

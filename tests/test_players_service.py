@@ -181,12 +181,12 @@ def test_whitelist_active_resets_on_started_at_change(install):
 
     reg_a = _registry_for(install, "running", started_at=100.0)
     server = _server()
-    server["enforceWhitelist"] = True  # persisted property → initial value
+    server["whitelist"] = True  # persisted property → initial value
     assert cache.get(reg_a, server) is True
 
     # Simulate stop + start: same server, new started_at.
     reg_b = _registry_for(install, "running", started_at=200.0)
-    server["enforceWhitelist"] = False  # property updated while stopped
+    server["whitelist"] = False  # property updated while stopped
     assert cache.get(reg_b, server) is False  # re-initialised from new property
 
 

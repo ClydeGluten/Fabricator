@@ -393,7 +393,7 @@ class WhitelistActiveCache:
 
     Keyed by (server_id, startedAt) — when the server restarts, started_at
     changes and the cache miss re-initialises from the persisted
-    enforce-whitelist property.
+    white-list property (distinct from enforce-whitelist).
     """
 
     def __init__(self):
@@ -408,13 +408,21 @@ class WhitelistActiveCache:
 
     def get(self, registry, server) -> bool:
         server_id = str(server["id"])
+        # The operator may have edited server.properties from the host or used
+        # the Minecraft console. Prefer the actual property when it exists.
+        try:
+            persisted = players_files.boolean_property(_install_path(registry, server), "white-list")
+        except (OSError, ValueError, TypeError):
+            persisted = None
+        if persisted is not None:
+            return persisted
         started_at = self._key(registry, server)
         if started_at is None:
             # Not running — caller should display the persisted property.
-            return bool(server.get("enforceWhitelist", False))
+            return bool(server.get("whitelist", False))
         record = self._records.get(server_id)
         if not record or record["started_at"] != started_at:
-            value = bool(server.get("enforceWhitelist", False))
+            value = bool(server.get("whitelist", False))
             self._records[server_id] = {"started_at": started_at, "active": value}
             return value
         return bool(record["active"])

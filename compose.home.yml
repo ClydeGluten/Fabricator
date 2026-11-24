@@ -1,0 +1,28 @@
+# Isolated, host-editable installation. Use tools/setup-home.py first.
+name: fabricator-home
+services:
+  panel:
+    build:
+      context: .
+      args:
+        VERSION: home-fork
+    image: fabricator-home:local
+    user: "${FABRICATOR_UID:?Run tools/setup-home.py}:${FABRICATOR_GID:?Run tools/setup-home.py}"
+    restart: unless-stopped
+    stop_grace_period: 60s
+    ports:
+      - "127.0.0.1:${FABRICATOR_PANEL_PORT:-5001}:5000"
+      - "${FABRICATOR_GAME_BIND:-127.0.0.1}:${FABRICATOR_GAME_PORT:-25566}:25565/tcp"
+      - "${FABRICATOR_GAME_BIND:-127.0.0.1}:${FABRICATOR_GAME_PORT:-25566}:25565/udp"
+    volumes:
+      - type: bind
+        source: ${FABRICATOR_DATA_DIR:?Run tools/setup-home.py}
+        target: /data
+        bind:
+          create_host_path: false
+    environment:
+      FLASK_ENV: production
+      HOME: /data
+      FABRICATOR_DISABLE_SELF_UPDATE: "1"
+      FABRICATOR_NO_TRAY: "1"
+

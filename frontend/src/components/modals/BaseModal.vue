@@ -1,7 +1,7 @@
 <template>
   <Transition name="modal">
     <div v-if="show" class="modal-overlay" @click.self="closeModal">
-      <div class="modal-container" :class="sizeClass">
+      <div class="modal-container" :class="sizeClass" role="dialog" aria-modal="true" :aria-label="title">
         <div class="modal-header">
           <h2>{{ title }}</h2>
           <button class="modal-close" @click="closeModal" :aria-label="$t('common.close')">
