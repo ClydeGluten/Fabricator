@@ -7,6 +7,8 @@ def test_cookie_flags_default(auth_client):
     assert resp.status_code == 200
     cookie = resp.headers.get("Set-Cookie", "")
     assert "HttpOnly" in cookie
+    assert "SameSite=Lax" in cookie
+    assert "Secure" not in cookie  # default off — panel serves HTTP
 
 
 def test_parallel_home_panel_uses_a_separate_cookie(tmp_servers_root, monkeypatch):
@@ -20,7 +22,8 @@ def test_parallel_home_panel_uses_a_separate_cookie(tmp_servers_root, monkeypatc
     app = create_app()
     response = app.test_client().post("/api/auth/login", json={"password": "pw"})
     assert response.status_code == 200
-    assert response.headers["Set-Cookie"].startswith("fabricator_home=")
+    cookie = response.headers["Set-Cookie"]
+    assert cookie.startswith("fabricator_home=")
     assert "SameSite=Lax" in cookie
     assert "Secure" not in cookie  # default off — panel serves HTTP
 
