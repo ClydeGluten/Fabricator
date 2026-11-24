@@ -5,8 +5,12 @@ Personal fork maintained by [ClydeGluten](https://github.com/ClydeGluten), based
 
 Adds a host-owned data directory, player detail cards (coordinates, inventory,
 health and controls), and a persistent whitelist editor with bulk import/export.
+Local Modrinth instances can also sync exact mod jars to stopped servers, with
+client-only filtering, previews, backups and per-server source selection.
 
 **[Инструкция на русском: запуск, перенос и DuckDNS](docs/HOME_SERVER_RU.md)**
+
+**[Синхронизация модов с Modrinth и подключение новых инстанций](docs/MODRINTH_SYNC_RU.md)**
 
 ```bash
 python3 tools/setup-home.py "$HOME/Games/Fabricator-fork-data"
@@ -22,6 +26,9 @@ Architecture: Vue/Pinia frontend → authenticated Flask API → managed Minecra
 process and read-only NBT snapshots. Live player reads use the existing console;
 a saved-data fallback is labelled with its timestamp. Inventory is read-only.
 New player endpoints retain the panel's session-only access policy.
+Instance sync uses a read-only profiles mount (`compose.modrinth.yml`, enabled
+by `tools/setup-modrinth.py` / `.env.modrinth`) and Modrinth's public hash lookup.
+The new endpoints are session-only. Account databases and tokens are not mounted.
 
 No additional paid service is needed: expected and peak subscriptions **$0/month**
 when running on an existing PC, excluding normal electricity/Internet costs.

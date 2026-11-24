@@ -1662,5 +1662,38 @@
     "fileTooLarge": "Choose a text or JSON file smaller than 1 MB.",
     "enforce": "Kick players removed from the whitelist",
     "enforceHint": "The enforce-whitelist setting controls kicking after a reload. Change it while stopped; the whitelist switch above works at any time."
+  },
+  "instanceSync": {
+    "title": "Modrinth instance sync",
+    "description": "Sync exact mod files from a local Modrinth instance to this server. Client-only mods are skipped; server-optional mods are kept.",
+    "connect": "Connect the Modrinth profiles folder once. It will be read-only; your instances and account data are not modified.",
+    "setupGuide": "How to connect Modrinth",
+    "instance": "Source instance",
+    "choose": "Choose an instance…",
+    "refresh": "Refresh list",
+    "preview": "Preview sync",
+    "newInstances": "Created another instance in Modrinth? Refresh this list to connect it. Each server remembers its own source.",
+    "lastSync": "Last sync: {instance} · {date}",
+    "empty": "No instances found in the connected folder.",
+    "unsupported": "Sync is available for Fabric, Quilt, Forge and NeoForge servers.",
+    "scanning": "Comparing files and checking Modrinth compatibility…",
+    "counts": "Add: {add} · Replace: {replace} · Remove: {remove}",
+    "unknown": "Included mods with unknown side: {n} — review this list",
+    "skipped": "Client-only mods skipped: {n}",
+    "preserved": "Other server mods kept: {n}",
+    "unchanged": "Already matching: {n}",
+    "disabled": "Disabled in the instance: {n}",
+    "stopFirst": "Stop the Minecraft server before applying this preview.",
+    "applyHint": "Only previously synced mods are removed when absent from the instance. Matching older versions are replaced. A backup is created before changes; worlds and configs stay in place.",
+    "apply": "Apply sync",
+    "noChanges": "Mod files already match. Apply to save this instance as the sync source.",
+    "success": "Sync complete. Copied: {copied} · Removed: {removed}. You can start the Minecraft server.",
+    "backup": "Backup in the server folder:",
+    "replaces": "Replaces:",
+    "actions": {
+      "add": "Add",
+      "replace": "Replace",
+      "remove": "Remove"
+    }
   }
 }

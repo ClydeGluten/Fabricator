@@ -1,0 +1,12 @@
+# Included by tools/home-compose.sh only when .env.modrinth exists.
+services:
+  panel:
+    environment:
+      FABRICATOR_MODRINTH_PROFILES: /modrinth-profiles
+    volumes:
+      - type: bind
+        source: ${FABRICATOR_MODRINTH_PROFILES_DIR:?Run tools/setup-modrinth.py}
+        target: /modrinth-profiles
+        read_only: true
+        bind:
+          create_host_path: false

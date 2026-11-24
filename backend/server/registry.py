@@ -281,6 +281,8 @@ class ServerProcessRegistry:
         server: Dict[str, object],
         required_java_major: Optional[int] = None
     ) -> Dict[str, object]:
+        if (self.resolve_install_path(server) / '.modrinth-sync-in-progress.json').exists():
+            return {'status': 'stopped', 'message': 'An interrupted Modrinth sync needs recovery before starting. See mod-sync-backups and the sync guide.'}
         try:
             manager = self._get_or_create_manager(server)
             # Rebuild command so a freshly-installed managed Java is picked up
