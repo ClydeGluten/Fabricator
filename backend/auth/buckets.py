@@ -98,6 +98,10 @@ _NEVER = [
     # Import reads (and in place, runs) an arbitrary host folder.
     ("POST", "/api/servers/import"),
     ("POST", "/api/servers/import/inspect"),
+    # Local instance files and jar installation are panel-session only.
+    ("GET", "/api/servers/<server_id>/modrinth-sync"),
+    ("POST", "/api/servers/<server_id>/modrinth-sync/preview"),
+    ("POST", "/api/servers/<server_id>/modrinth-sync/apply"),
     ("PUT", "/api/servers/order"),
     # Server icon (#85): writes server-icon.png into the install path.
     ("PUT", "/api/servers/<server_id>/icon"),

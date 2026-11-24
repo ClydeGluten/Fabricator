@@ -9,6 +9,8 @@ from pathlib import Path
 import signal
 import sys
 import tempfile
+import hashlib
+import zipfile
 from datetime import datetime, timezone
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -22,6 +24,7 @@ for key, value in {
     "JAVA_ROOT": root / "java", "BACKUPS_DIR": root / "backups",
     "FABRICATOR_DISABLE_AUTH": "1", "FABRICATOR_DISABLE_SCHEDULER": "1",
     "FABRICATOR_DISABLE_SELF_UPDATE": "1", "FLASK_ENV": "development",
+    "FABRICATOR_MODRINTH_PROFILES": root / "profiles",
 }.items():
     os.environ[key] = str(value)
 
@@ -69,6 +72,39 @@ for suffix in ("offline", "live"):
                     "port": 25565, "memory": "1G", "maxPlayers": 5, "status": "stopped",
                     "onlineMode": False, "whitelist": False, "enforceWhitelist": False, "installPath": sid})
 (root / "servers.json").write_text(json.dumps(records))
+
+# Instance-sync browser checks exercise the real planner and filesystem writer,
+# with deterministic Modrinth responses and disposable jars only.
+from backend.modrinth.client import ModrinthClient
+
+
+def write_mod(folder, filename, mod_id, version="1", environment="*"):
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / filename
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("fabric.mod.json", json.dumps({"schemaVersion": 1, "id": mod_id,
+                         "version": version, "name": mod_id, "environment": environment}))
+    return path
+
+
+source = root / "profiles/Browser instance/mods"
+write_mod(source, "shared-v2.jar", "shared", "2")
+write_mod(source, "client.jar", "client", environment="client")
+optional = write_mod(source, "optional.jar", "optional")
+optional_hash = hashlib.sha1(optional.read_bytes()).hexdigest()
+for sid in ("srv_offline", "srv_live"):
+    write_mod(root / "servers" / sid / "mods", "shared-v1.jar", "shared", "1")
+    write_mod(root / "servers" / sid / "mods", "server-extra.jar", "server-extra", environment="server")
+
+
+def fixture_versions(self, hashes, **kwargs):
+    return {optional_hash: {"id": "optional-version", "project_id": "optional-project", "version_number": "1",
+                           "loaders": ["fabric"], "game_versions": ["26.3"]}} if optional_hash in hashes else {}
+
+
+ModrinthClient.get_versions_by_hashes = fixture_versions
+ModrinthClient.get_projects = lambda self, ids: [{"id": "optional-project", "title": "Optional mod", "environment": ["client_only_server_optional"]}] if "optional-project" in ids else []
+ModrinthClient.get_latest_versions_by_hashes = lambda *args, **kwargs: {}
 app = create_app()
 registry = get_server_process_registry()
 manager = FixtureManager(root / "servers/srv_live")
@@ -79,6 +115,20 @@ registry._started_at["srv_live"] = 123.0
 @app.get("/test/commands")
 def commands():
     return {"commands": manager.commands}
+
+
+@app.post("/test/add-instance")
+def add_instance():
+    write_mod(root / "profiles/New browser instance/mods", "second.jar", "second")
+    return {"ok": True}
+
+
+@app.get("/test/mod-files/<sid>")
+def mod_files(sid):
+    if sid not in {"srv_offline", "srv_live"}:
+        return {"error": "fixture not found"}, 404
+    return {"files": sorted(p.name for p in (root / "servers" / sid / "mods").iterdir()),
+            "sourceFiles": sorted(p.name for p in source.iterdir())}
 
 
 def stop(*_):

@@ -53,8 +53,8 @@ def test_read_and_manage_counts():
     counts = Counter(BUCKETS.values())
     assert counts["read"] == 36
     assert counts["manage"] == 8
-    assert counts["never"] == 80
-    assert sum(counts.values()) == 124
+    assert counts["never"] == 83
+    assert sum(counts.values()) == 127
 
 
 def test_the_console_and_settings_routes_are_never():

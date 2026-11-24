@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import AppButton from '../../components/ui/AppButton.vue'
 import Panel from '../../components/ui/Panel.vue'
+import InstanceSyncPanel from '../../components/mods/InstanceSyncPanel.vue'
 import SearchResultCard from '../../components/ui/SearchResultCard.vue'
 import { formatFileSize } from '../../utils/format'
 import { installedModDisplayName } from '../../utils/installedModDisplay'
@@ -149,6 +150,8 @@ const selectAllLabel = computed(() => {
         </AppButton>
       </div>
     </Panel>
+
+    <InstanceSyncPanel v-if="!isPlugin" />
 
     <Panel :title="tk('mods.installedMods', 'mods.installedPlugins')" :padded="false">
       <!-- Selection toolbar. Present whenever there is a list to act on, so the
